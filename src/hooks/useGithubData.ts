@@ -1,52 +1,65 @@
+import { useEffect } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
-import { fetchGithubUser, fetchGithubRepos } from '../api/github';
+import { fetchGithubUser, fetchGithubRepos, fetchRateLimit } from '../api/github';
+import { useGithubStore } from '../store/useGithubStore';
+import { useToastStore } from '../store/useToastStore';
 import type { GithubUser, GithubRepo } from '../types/github';
 
-const REPOS_PER_PAGE = 12;
+export const useGithubData = () => {
+  const { username, token } = useGithubStore();
+  const { addToast } = useToastStore();
 
-export const useGithubData = (username: string) => {
-  // GitHub 유저 기본 정보 조회
+  // 1. 유저 정보 조회 쿼리
   const userQuery = useQuery<GithubUser, Error>({
-    queryKey: ['github-user', username],
-    queryFn: () => fetchGithubUser(username),
-    staleTime: 1000 * 60 * 5, // 5분 캐싱
-    enabled: !!username.trim(),
+    queryKey: ['githubUser', username, token],
+    queryFn: () => fetchGithubUser(username, token || undefined),
+    enabled: Boolean(username.trim()),
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
   });
 
-  // GitHub 레포지토리 무한 스크롤 쿼리
+  // 2. 저장소 무한 스크롤 쿼리
   const reposQuery = useInfiniteQuery<GithubRepo[], Error>({
-    queryKey: ['github-repos', username],
-    queryFn: ({ pageParam }) =>
-      fetchGithubRepos(username, pageParam as number, REPOS_PER_PAGE),
+    queryKey: ['githubRepos', username, token],
+    queryFn: ({ pageParam = 1 }) =>
+      fetchGithubRepos(username, pageParam as number, 12, token || undefined),
     initialPageParam: 1,
-    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
-      if (lastPage.length < REPOS_PER_PAGE) {
-        return undefined; // 마지막 페이지 도달
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < 12) {
+        return undefined;
       }
-      return (lastPageParam as number) + 1;
+      return allPages.length + 1;
     },
-    staleTime: 1000 * 60 * 5, // 5분 캐싱
-    enabled: !!username.trim(),
+    enabled: Boolean(username.trim()) && !userQuery.isError,
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
   });
 
-  // 2차원 pages 배열을 1차원 레포지토리 배열로 평탄화
-  const repos = useMemo(() => {
-    return reposQuery.data?.pages.flatMap((page) => page) ?? [];
-  }, [reposQuery.data]);
+  // 3. API 한도(Rate Limit) 쿼리
+  const rateLimitQuery = useQuery({
+    queryKey: ['githubRateLimit', token],
+    queryFn: () => fetchRateLimit(token || undefined),
+    staleTime: 1000 * 60 * 1,
+    refetchInterval: 1000 * 60 * 2,
+  });
+
+  // 4. 쿼리 에러 발생 시 토스트 알림 연동
+  useEffect(() => {
+    if (userQuery.isError && userQuery.error) {
+      const errMsg = userQuery.error.message;
+      if (errMsg.includes('404')) {
+        addToast(`'${username}' 사용자를 찾을 수 없습니다. 아이디를 확인해 주세요.`, 'error');
+      } else if (errMsg.includes('403') || errMsg.includes('rate limit')) {
+        addToast('GitHub API 요청 한도가 초과되었습니다. PAT 토큰을 등록해 주세요.', 'warning');
+      } else {
+        addToast(`네트워크 오류가 발생했습니다: ${errMsg}`, 'error');
+      }
+    }
+  }, [userQuery.isError, userQuery.error, username, addToast]);
 
   return {
-    user: userQuery.data,
-    isUserLoading: userQuery.isLoading,
-    userError: userQuery.error,
-
-    repos,
-    isReposLoading: reposQuery.isLoading,
-    reposError: reposQuery.error,
-    hasNextPage: reposQuery.hasNextPage,
-    isFetchingNextPage: reposQuery.isFetchingNextPage,
-    fetchNextPage: reposQuery.fetchNextPage,
-
-    isLoading: userQuery.isLoading || reposQuery.isLoading,
+    userQuery,
+    reposQuery,
+    rateLimitQuery,
   };
 };

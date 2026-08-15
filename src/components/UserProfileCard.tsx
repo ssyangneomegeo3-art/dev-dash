@@ -7,81 +7,58 @@ interface UserProfileCardProps {
 
 export const UserProfileCard: React.FC<UserProfileCardProps> = ({ user }) => {
   return (
-    <div
-      style={{
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '12px',
-        padding: '24px',
-        boxShadow: 'var(--shadow)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        position: 'sticky',
-        top: '24px',
-      }}
-    >
-      <img
-        src={user.avatar_url}
-        alt={`${user.login} avatar`}
-        style={{
-          width: '120px',
-          height: '120px',
-          borderRadius: '50%',
-          border: '2px solid var(--border-color)',
-          marginBottom: '16px',
-          objectFit: 'cover',
-        }}
-      />
-      <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
-        {user.name || user.login}
-      </h2>
-      <a
-        href={user.html_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          fontSize: '0.9rem',
-          color: 'var(--accent-color)',
-          textDecoration: 'none',
-          marginBottom: '14px',
-          fontWeight: 500,
-        }}
-      >
-        @{user.login}
-      </a>
-
-      {user.bio && (
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)', margin: '0 0 20px 0', lineHeight: 1.4 }}>
-          {user.bio}
-        </p>
-      )}
-
-      {/* 통계 박스 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px',
-          width: '100%',
-          paddingTop: '16px',
-          borderTop: '1px solid var(--border-color)',
-        }}
-      >
-        <div>
-          <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>{user.public_repos}</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>Repos</div>
-        </div>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>{user.followers}</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>Followers</div>
-        </div>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>{user.following}</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>Following</div>
+    <div className="profile-card">
+      <div className="profile-header">
+        <img src={user.avatar_url} alt={`${user.login}의 아바타`} className="profile-avatar" />
+        <div className="profile-names">
+          <h2 className="profile-fullname">{user.name || user.login}</h2>
+          <span className="profile-username">@{user.login}</span>
         </div>
       </div>
+
+      {user.bio && <p className="profile-bio">{user.bio}</p>}
+
+      <div className="profile-stats">
+        <div className="stat-item">
+          <span className="stat-value">{user.public_repos.toLocaleString()}</span>
+          <span className="stat-label">저장소</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-value">{user.followers.toLocaleString()}</span>
+          <span className="stat-label">팔로워</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-value">{user.following.toLocaleString()}</span>
+          <span className="stat-label">팔로잉</span>
+        </div>
+      </div>
+
+      <div className="profile-details">
+        {user.company && (
+          <div className="profile-detail-item">
+            <span>🏢</span>
+            <span>{user.company}</span>
+          </div>
+        )}
+        {user.location && (
+          <div className="profile-detail-item">
+            <span>📍</span>
+            <span>{user.location}</span>
+          </div>
+        )}
+        {user.blog && (
+          <div className="profile-detail-item">
+            <span>🔗</span>
+            <a href={user.blog.startsWith('http') ? user.blog : `https://${user.blog}`} target="_blank" rel="noreferrer" className="repo-link">
+              {user.blog}
+            </a>
+          </div>
+        )}
+      </div>
+
+      <a href={user.html_url} target="_blank" rel="noreferrer" className="profile-github-link">
+        GitHub 프로필 방문 ↗
+      </a>
     </div>
   );
 };

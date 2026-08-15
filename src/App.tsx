@@ -1,6 +1,4 @@
-import React from 'react';
-import { useGithubStore } from './store/useGithubStore';
-import { useGithubData } from './hooks/useGithubData';
+import React, { useMemo } from 'react';
 import { Header } from './components/Header';
 import { SearchBar } from './components/SearchBar';
 import { RecentSearchTags } from './components/RecentSearchTags';
@@ -8,89 +6,69 @@ import { UserProfileCard } from './components/UserProfileCard';
 import { LanguageStats } from './components/LanguageStats';
 import { RepoList } from './components/RepoList';
 import { SkeletonLoader } from './components/SkeletonLoader';
+import { TokenModal } from './components/TokenModal';
+import { ReadmeModal } from './components/ReadmeModal';
+import { Toast } from './components/Toast';
+import { useGithubData } from './hooks/useGithubData';
+import { useGithubStore } from './store/useGithubStore';
 
 export const App: React.FC = () => {
-  const username = useGithubStore((state) => state.username);
-  const {
-    user,
-    repos,
-    isLoading,
-    userError,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  } = useGithubData(username);
+  const { username } = useGithubStore();
+  const { userQuery, reposQuery } = useGithubData();
+
+  // 무한 스크롤 저장소 페이지 병합
+  const allRepos = useMemo(() => {
+    if (!reposQuery.data) return [];
+    return reposQuery.data.pages.flatMap((page) => page);
+  }, [reposQuery.data]);
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--bg-main)',
-        color: 'var(--text-main)',
-        transition: 'background-color 0.2s ease',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '24px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px',
-        }}
-      >
-        <Header />
+    <div className="app-container">
+      <Header />
+
+      <main className="main-content">
         <SearchBar />
         <RecentSearchTags />
 
-        {userError && (
-          <div
-            style={{
-              padding: '16px',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: '8px',
-              color: '#ef4444',
-              fontSize: '14px',
-            }}
-          >
-            ⚠️ {userError.message}
+        {userQuery.isLoading && <SkeletonLoader />}
+
+        {userQuery.isSuccess && userQuery.data && (
+          <div className="dashboard-grid">
+            <aside className="sidebar-col">
+              <UserProfileCard user={userQuery.data} />
+              <LanguageStats repos={allRepos} />
+            </aside>
+
+            <section className="content-col">
+              <RepoList
+                repos={allRepos}
+                hasNextPage={Boolean(reposQuery.hasNextPage)}
+                isFetchingNextPage={reposQuery.isFetchingNextPage}
+                fetchNextPage={reposQuery.fetchNextPage}
+              />
+            </section>
           </div>
         )}
 
-        {isLoading ? (
-          <SkeletonLoader />
-        ) : (
-          user && (
-            <main
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: '24px',
-                alignItems: 'start',
-              }}
-            >
-              {/* 좌측 사이드바: 프로필 및 언어 통계 */}
-              <aside style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <UserProfileCard user={user} />
-                <LanguageStats repos={repos} />
-              </aside>
-
-              {/* 우측 본문: 레포지토리 목록 (무한 스크롤) */}
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <RepoList
-                  repos={repos}
-                  isLoading={false}
-                  hasNextPage={hasNextPage}
-                  isFetchingNextPage={isFetchingNextPage}
-                  fetchNextPage={fetchNextPage}
-                />
-              </div>
-            </main>
-          )
+        {userQuery.isError && (
+          <div
+            className="repo-card"
+            style={{ textAlign: 'center', padding: '48px 24px', marginTop: '24px' }}
+          >
+            <h3 style={{ color: 'var(--accent-red)', marginBottom: '8px' }}>
+              데이터를 불러올 수 없습니다
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+              '{username}' 계정이 존재하지 않거나 일시적인 네트워크 오류가 발생했습니다.
+            </p>
+          </div>
         )}
-      </div>
+      </main>
+
+      {/* 전역 모달 및 토스트 피드백 */}
+      <TokenModal />
+      <ReadmeModal />
+      <Toast />
     </div>
   );
 };

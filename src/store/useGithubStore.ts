@@ -1,63 +1,101 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import type { ReadmeRepoInfo } from '../types/github';
+
+export type ThemeMode = 'light' | 'dark';
 
 export interface GithubState {
   username: string;
   recentSearches: string[];
-  isDarkMode: boolean;
+  theme: ThemeMode;
   pinnedRepoIds: number[];
+  token: string | null;
+  isTokenModalOpen: boolean;
+  selectedReadmeRepo: ReadmeRepoInfo | null;
   setUsername: (name: string) => void;
   addRecentSearch: (name: string) => void;
   removeRecentSearch: (name: string) => void;
-  toggleDarkMode: () => void;
+  toggleTheme: () => void;
   togglePinRepo: (id: number) => void;
+  setToken: (token: string | null) => void;
+  setIsTokenModalOpen: (isOpen: boolean) => void;
+  setSelectedReadmeRepo: (repo: ReadmeRepoInfo | null) => void;
 }
+
+const applyThemeToDOM = (theme: ThemeMode) => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+  }
+};
 
 export const useGithubStore = create<GithubState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       username: 'ssyangneomegeo3-art',
       recentSearches: ['ssyangneomegeo3-art'],
-      isDarkMode: false,
+      theme: 'dark',
       pinnedRepoIds: [],
+      token: null,
+      isTokenModalOpen: false,
+      selectedReadmeRepo: null,
 
-      setUsername: (name: string) => set({ username: name.trim() }),
+      setUsername: (username: string) => set({ username }),
 
-      addRecentSearch: (name: string) =>
-        set((state) => {
-          const trimmed = name.trim();
-          if (!trimmed) return state;
-          const filtered = state.recentSearches.filter(
-            (item) => item.toLowerCase() !== trimmed.toLowerCase()
-          );
-          return { recentSearches: [trimmed, ...filtered].slice(0, 5) };
-        }),
+      addRecentSearch: (search: string) => {
+        const trimmed = search.trim();
+        if (!trimmed) return;
+        const current = get().recentSearches;
+        const filtered = current.filter((item) => item.toLowerCase() !== trimmed.toLowerCase());
+        const updated = [trimmed, ...filtered].slice(0, 5);
+        set({ recentSearches: updated });
+      },
 
-      removeRecentSearch: (name: string) =>
+      removeRecentSearch: (search: string) => {
         set((state) => ({
-          recentSearches: state.recentSearches.filter((item) => item !== name),
-        })),
+          recentSearches: state.recentSearches.filter((item) => item !== search),
+        }));
+      },
 
-      toggleDarkMode: () =>
+      toggleTheme: () => {
+        const nextTheme: ThemeMode = get().theme === 'dark' ? 'light' : 'dark';
+        applyThemeToDOM(nextTheme);
+        set({ theme: nextTheme });
+      },
+
+      togglePinRepo: (repoId: number) => {
         set((state) => {
-          const nextMode = !state.isDarkMode;
-          if (nextMode) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
-          return { isDarkMode: nextMode };
-        }),
+          const isPinned = state.pinnedRepoIds.includes(repoId);
+          const pinnedRepoIds = isPinned
+            ? state.pinnedRepoIds.filter((id) => id !== repoId)
+            : [repoId, ...state.pinnedRepoIds];
+          return { pinnedRepoIds };
+        });
+      },
 
-      togglePinRepo: (id: number) =>
-        set((state) => ({
-          pinnedRepoIds: state.pinnedRepoIds.includes(id)
-            ? state.pinnedRepoIds.filter((item) => item !== id)
-            : [...state.pinnedRepoIds, id],
-        })),
+      setToken: (token: string | null) => set({ token }),
+
+      setIsTokenModalOpen: (isTokenModalOpen: boolean) => set({ isTokenModalOpen }),
+
+      setSelectedReadmeRepo: (selectedReadmeRepo: ReadmeRepoInfo | null) =>
+        set({ selectedReadmeRepo }),
     }),
     {
-      name: 'devdash-github-storage',
+      name: 'devdash-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        username: state.username,
+        recentSearches: state.recentSearches,
+        theme: state.theme,
+        pinnedRepoIds: state.pinnedRepoIds,
+        token: state.token,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.theme) {
+          applyThemeToDOM(state.theme);
+        }
+      },
     }
   )
 );

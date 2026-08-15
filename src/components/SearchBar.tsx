@@ -1,52 +1,44 @@
 import React, { useState } from 'react';
 import { useGithubStore } from '../store/useGithubStore';
+import { useToastStore } from '../store/useToastStore';
 
 export const SearchBar: React.FC = () => {
-  const { username, setUsername, addRecentSearch } = useGithubStore();
-  const [inputVal, setInputVal] = useState(username);
+  const { setUsername, addRecentSearch } = useGithubStore();
+  const { addToast } = useToastStore();
+  const [inputVal, setInputVal] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = inputVal.trim();
-    if (!trimmed) return;
-
+    if (!trimmed) {
+      addToast('검색할 GitHub 사용자명을 입력해 주세요.', 'warning');
+      return;
+    }
     setUsername(trimmed);
     addRecentSearch(trimmed);
+    setInputVal('');
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
-      <input
-        type="text"
-        placeholder="GitHub 유저네임 검색"
-        value={inputVal}
-        onChange={(e) => setInputVal(e.target.value)}
-        style={{
-          flex: 1,
-          padding: '12px 16px',
-          borderRadius: '8px',
-          border: '1px solid var(--input-border)',
-          backgroundColor: 'var(--input-bg)',
-          color: 'var(--text-color)',
-          fontSize: '1rem',
-          outline: 'none',
-        }}
-      />
-      <button
-        type="submit"
-        style={{
-          padding: '12px 24px',
-          borderRadius: '8px',
-          border: 'none',
-          backgroundColor: 'var(--btn-bg)',
-          color: 'var(--btn-text)',
-          fontSize: '1rem',
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        검색
-      </button>
-    </form>
+    <div className="search-card-wrapper">
+      <form onSubmit={handleSubmit} className="search-form">
+        <div className="search-input-group">
+          <span className="search-icon">🔍</span>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="GitHub 사용자명 검색 (예: ssyangneomegeo3-art, facebook, torvalds)"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
+          />
+        </div>
+        <button type="submit" className="search-submit-btn" disabled={!inputVal.trim()}>
+          검색하기
+        </button>
+      </form>
+    </div>
   );
 };
