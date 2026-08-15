@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { Header } from './components/Header';
 import { SearchBar } from './components/SearchBar';
 import { RecentSearchTags } from './components/RecentSearchTags';
@@ -6,14 +6,20 @@ import { UserProfileCard } from './components/UserProfileCard';
 import { LanguageStats } from './components/LanguageStats';
 import { RepoList } from './components/RepoList';
 import { SkeletonLoader } from './components/SkeletonLoader';
-import { TokenModal } from './components/TokenModal';
-import { ReadmeModal } from './components/ReadmeModal';
 import { Toast } from './components/Toast';
 import { useGithubData } from './hooks/useGithubData';
 import { useGithubStore } from './store/useGithubStore';
 
+// [최적화] 사용자가 열었을 때만 동적으로 다운로드되는 지연 로딩 컴포넌트
+const TokenModal = React.lazy(() =>
+  import('./components/TokenModal').then((module) => ({ default: module.TokenModal }))
+);
+const ReadmeModal = React.lazy(() =>
+  import('./components/ReadmeModal').then((module) => ({ default: module.ReadmeModal }))
+);
+
 export const App: React.FC = () => {
-  const { username } = useGithubStore();
+  const { username, isTokenModalOpen, selectedReadmeRepo } = useGithubStore();
   const { userQuery, reposQuery } = useGithubData();
 
   // 무한 스크롤 저장소 페이지 병합
@@ -65,9 +71,12 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* 전역 모달 및 토스트 피드백 */}
-      <TokenModal />
-      <ReadmeModal />
+      {/* [최적화] 모달이 실제로 필요할 때만 로드되도록 조건부 Suspense 감싸기 */}
+      <Suspense fallback={null}>
+        {isTokenModalOpen && <TokenModal />}
+        {selectedReadmeRepo && <ReadmeModal />}
+      </Suspense>
+
       <Toast />
     </div>
   );
