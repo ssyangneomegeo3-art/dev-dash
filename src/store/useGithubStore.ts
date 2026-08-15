@@ -1,51 +1,63 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface GithubUIState {
-  searchUsername: string;
+export interface GithubState {
+  username: string;
   recentSearches: string[];
-  isDarkMode: boolean; // 다크모드 상태
-  setSearchUsername: (username: string) => void;
-  removeRecentSearch: (target: string) => void;
-  clearRecentSearches: () => void;
-  toggleDarkMode: () => void; // 다크모드 토글 액션
+  isDarkMode: boolean;
+  pinnedRepoIds: number[];
+  setUsername: (name: string) => void;
+  addRecentSearch: (name: string) => void;
+  removeRecentSearch: (name: string) => void;
+  toggleDarkMode: () => void;
+  togglePinRepo: (id: number) => void;
 }
 
-export const useGithubStore = create<GithubUIState>()(
+export const useGithubStore = create<GithubState>()(
   persist(
     (set) => ({
-      searchUsername: 'ssyangneomegeo3-art',
+      username: 'ssyangneomegeo3-art',
       recentSearches: ['ssyangneomegeo3-art'],
-      isDarkMode: false, // 기본값: 라이트 모드
+      isDarkMode: false,
+      pinnedRepoIds: [],
 
-      setSearchUsername: (username: string) =>
+      setUsername: (name: string) => set({ username: name.trim() }),
+
+      addRecentSearch: (name: string) =>
         set((state) => {
-          const trimmed = username.trim();
+          const trimmed = name.trim();
           if (!trimmed) return state;
-
-          const updated = [
-            trimmed,
-            ...state.recentSearches.filter((name) => name.toLowerCase() !== trimmed.toLowerCase()),
-          ].slice(0, 5);
-
-          return {
-            searchUsername: trimmed,
-            recentSearches: updated,
-          };
+          const filtered = state.recentSearches.filter(
+            (item) => item.toLowerCase() !== trimmed.toLowerCase()
+          );
+          return { recentSearches: [trimmed, ...filtered].slice(0, 5) };
         }),
 
-      removeRecentSearch: (target: string) =>
+      removeRecentSearch: (name: string) =>
         set((state) => ({
-          recentSearches: state.recentSearches.filter((name) => name !== target),
+          recentSearches: state.recentSearches.filter((item) => item !== name),
         })),
 
-      clearRecentSearches: () => set({ recentSearches: [] }),
+      toggleDarkMode: () =>
+        set((state) => {
+          const nextMode = !state.isDarkMode;
+          if (nextMode) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+          return { isDarkMode: nextMode };
+        }),
 
-      // 다크모드 전환
-      toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+      togglePinRepo: (id: number) =>
+        set((state) => ({
+          pinnedRepoIds: state.pinnedRepoIds.includes(id)
+            ? state.pinnedRepoIds.filter((item) => item !== id)
+            : [...state.pinnedRepoIds, id],
+        })),
     }),
     {
-      name: 'devdash-storage', // LocalStorage Key
+      name: 'devdash-github-storage',
     }
   )
 );
