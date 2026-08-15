@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchRateLimit } from '../api/github';
 import { useGithubStore } from '../store/useGithubStore';
 import { useToastStore } from '../store/useToastStore';
-import { useGithubData } from '../hooks/useGithubData';
 
 export const TokenModal: React.FC = () => {
   const { isTokenModalOpen, setIsTokenModalOpen, token, setToken } = useGithubStore();
   const { addToast } = useToastStore();
-  const { rateLimitQuery } = useGithubData();
+  const queryClient = useQueryClient();
   const [inputToken, setInputToken] = useState('');
+
+  // TokenModal 전용 RateLimit 쿼리 (모달이 열렸을 때만 활성화)
+  const rateLimitQuery = useQuery({
+    queryKey: ['githubRateLimit', token],
+    queryFn: () => fetchRateLimit(token || undefined),
+    enabled: isTokenModalOpen,
+    staleTime: 1000 * 60 * 1,
+  });
 
   if (!isTokenModalOpen) return null;
 
@@ -20,14 +29,19 @@ export const TokenModal: React.FC = () => {
     setToken(trimmed);
     setInputToken('');
     addToast('GitHub PAT 토큰이 안전하게 적용되었습니다.', 'success');
-    rateLimitQuery.refetch();
+    // 캐시 무효화를 통해 최신 토큰 상태로 재조회
+    queryClient.invalidateQueries({ queryKey: ['githubRateLimit'] });
+    queryClient.invalidateQueries({ queryKey: ['githubUser'] });
+    queryClient.invalidateQueries({ queryKey: ['githubRepos'] });
   };
 
   const handleRemove = () => {
     setToken(null);
     setInputToken('');
     addToast('PAT 토큰이 제거되었습니다. 기본 한도(60회)로 전환됩니다.', 'info');
-    rateLimitQuery.refetch();
+    queryClient.invalidateQueries({ queryKey: ['githubRateLimit'] });
+    queryClient.invalidateQueries({ queryKey: ['githubUser'] });
+    queryClient.invalidateQueries({ queryKey: ['githubRepos'] });
   };
 
   const rateLimit = rateLimitQuery.data?.rate;

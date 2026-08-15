@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { fetchGithubUser, fetchGithubRepos, fetchRateLimit } from '../api/github';
 import { useGithubStore } from '../store/useGithubStore';
@@ -8,6 +8,7 @@ import type { GithubUser, GithubRepo } from '../types/github';
 export const useGithubData = () => {
   const { username, token } = useGithubStore();
   const { addToast } = useToastStore();
+  const lastReportedKeyRef = useRef<string>('');
 
   // 1. 유저 정보 조회 쿼리
   const userQuery = useQuery<GithubUser, Error>({
@@ -43,9 +44,13 @@ export const useGithubData = () => {
     refetchInterval: 1000 * 60 * 2,
   });
 
-  // 4. 쿼리 에러 발생 시 토스트 알림 연동
+  // 4. 쿼리 에러 발생 시 토스트 알림 연동 (중복 방지 가드)
   useEffect(() => {
     if (userQuery.isError && userQuery.error) {
+      const currentErrorKey = `${username}-${userQuery.error.message}`;
+      if (lastReportedKeyRef.current === currentErrorKey) return;
+      lastReportedKeyRef.current = currentErrorKey;
+
       const errMsg = userQuery.error.message;
       if (errMsg.includes('404')) {
         addToast(`'${username}' 사용자를 찾을 수 없습니다. 아이디를 확인해 주세요.`, 'error');
@@ -54,8 +59,10 @@ export const useGithubData = () => {
       } else {
         addToast(`네트워크 오류가 발생했습니다: ${errMsg}`, 'error');
       }
+    } else if (userQuery.isSuccess) {
+      lastReportedKeyRef.current = '';
     }
-  }, [userQuery.isError, userQuery.error, username, addToast]);
+  }, [userQuery.isError, userQuery.isSuccess, userQuery.error, username, addToast]);
 
   return {
     userQuery,
