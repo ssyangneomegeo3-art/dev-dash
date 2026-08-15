@@ -4,7 +4,8 @@
   /* Light Theme */
   --bg-main: #f6f8fa;
   --bg-card: #ffffff;
-  --bg-subtle: #f3f4f6;
+  --bg-subtle: #eaeef2;
+  --bg-chip: #ffffff;
   --text-main: #1f2328;
   --text-muted: #656d76;
   --border-color: #d0d7de;
@@ -26,6 +27,7 @@
   --bg-main: #0d1117;
   --bg-card: #161b22;
   --bg-subtle: #21262d;
+  --bg-chip: #1c2128;
   --text-main: #e6edf3;
   --text-muted: #8b949e;
   --border-color: #30363d;
@@ -211,53 +213,85 @@ body {
   cursor: not-allowed;
 }
 
-/* Recent Search Tags */
-.recent-searches {
+/* Recent Search Tags (개선된 구분 박스 & 여백) */
+.recent-searches-wrapper {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+  margin-bottom: 32px; /* 아랫쪽 박스와 충분한 간격 확보 */
+  padding: 6px 4px;
+}
+
+.recent-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.recent-tags-list {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 24px;
-}
-
-.recent-label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-weight: 600;
 }
 
 .tag-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background-color: var(--bg-card);
+  background-color: var(--bg-chip);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 4px 10px;
-  font-size: 0.8rem;
-  color: var(--text-main);
-  cursor: pointer;
-  transition: all 0.2s ease;
+  border-radius: 20px;
+  padding: 4px 6px 4px 12px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tag-chip:hover {
   border-color: var(--accent-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.tag-text-btn {
+  background: none;
+  border: none;
+  color: var(--text-main);
+  font-size: 0.825rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 4px 2px 0;
+  outline: none;
+  font-family: inherit;
+}
+
+.tag-text-btn:hover {
   color: var(--accent-blue);
 }
 
 .tag-delete-btn {
-  background: none;
-  border: none;
+  background: var(--bg-subtle);
+  border: 1px solid transparent;
+  border-radius: 50%;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
-  padding: 0 2px;
+  justify-content: center;
+  margin-left: 4px;
+  transition: all 0.2s ease;
 }
 
 .tag-delete-btn:hover {
-  color: var(--accent-red);
+  background-color: var(--accent-red);
+  color: #ffffff;
 }
 
 /* Dashboard Grid */
@@ -619,6 +653,52 @@ body {
   font-size: 0.875rem;
 }
 
+/* Skeleton Loading Styles */
+.skeleton-pulse {
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle) 25%,
+    var(--border-color) 37%,
+    var(--bg-subtle) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+.skeleton-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+}
+
+.skeleton-line {
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeleton-title {
+  height: 24px;
+  width: 60%;
+  margin: 0 auto 8px;
+}
+
+.skeleton-subtitle {
+  height: 16px;
+  width: 40%;
+  margin: 0 auto 16px;
+}
+
 /* Modals */
 .modal-backdrop {
   position: fixed;
@@ -907,6 +987,10 @@ body {
 
   .search-submit-btn {
     width: 100%;
+  }
+
+  .recent-searches-wrapper {
+    margin-bottom: 24px;
   }
 
   .repo-controls-card {

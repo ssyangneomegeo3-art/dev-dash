@@ -2,51 +2,39 @@ import React from 'react';
 import { useGithubStore } from '../store/useGithubStore';
 
 export const RecentSearchTags: React.FC = () => {
-  const { recentSearches = [], setUsername, removeRecentSearch } = useGithubStore();
+  const { recentSearches, setUsername, removeRecentSearch } = useGithubStore();
 
-  if (!recentSearches || recentSearches.length === 0) return null;
+  if (recentSearches.length === 0) return null;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '12px' }}>
-      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>최근 검색:</span>
-      {recentSearches.map((name) => (
-        <span
-          key={name}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            backgroundColor: 'var(--tag-bg)',
-            color: 'var(--tag-text)',
-            border: '1px solid var(--card-border)',
-            padding: '4px 10px',
-            borderRadius: '16px',
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-          }}
-          onClick={() => setUsername(name)}
-        >
-          {name}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              removeRecentSearch(name);
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              lineHeight: 1,
-              padding: '0 2px',
-              color: 'var(--text-muted)',
-            }}
-          >
-            ×
-          </button>
-        </span>
-      ))}
+    <div className="recent-searches-wrapper">
+      <span className="recent-label">🕒 최근 검색:</span>
+      <div className="recent-tags-list">
+        {recentSearches.map((item) => (
+          <div key={item} className="tag-chip">
+            <button
+              type="button"
+              className="tag-text-btn"
+              onClick={() => setUsername(item)}
+              title={`'${item}' 다시 검색`}
+            >
+              {item}
+            </button>
+            <button
+              type="button"
+              className="tag-delete-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeRecentSearch(item);
+              }}
+              title={`'${item}' 기록 삭제`}
+              aria-label={`${item} 검색 기록 삭제`}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
